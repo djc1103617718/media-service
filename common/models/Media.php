@@ -34,10 +34,10 @@ class Media extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['id', 'app_id', 'category_id', 'object_id', 'object_md5_prefix', 'name', 'description', 'content_type', 'create_time', 'update_time'], 'required'],
+            [['id', 'app_id', 'category_id', 'object_id', 'object_md5_prefix', 'name', 'content_type', 'create_time', 'update_time'], 'required'],
             [['id', 'app_id', 'category_id', 'object_id', 'create_time', 'update_time'], 'integer'],
             [['object_md5_prefix'], 'string', 'max' => 8],
-            [['name', 'description'], 'string', 'max' => 255],
+            [['name'], 'string', 'max' => 255],
             [['content_type'], 'string', 'max' => 128]
         ];
     }

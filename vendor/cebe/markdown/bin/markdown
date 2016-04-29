@@ -52,7 +52,7 @@ foreach($argv as $k => $arg) {
 			break;
 			case '-h':
 			case '--help':
-				echo "PHP Markdown to HTML converters\n";
+				echo "PHP Markdown to HTML converter\n";
 				echo "------------------------------\n\n";
 				echo "by Carsten Brandt <mail@cebe.cc>\n\n";
 				usage();

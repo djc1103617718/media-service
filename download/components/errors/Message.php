@@ -31,6 +31,16 @@ class Message extends Object
 
         // Input File error
         Code::INPUT_FILE_NOT_FOUND => 'Input file was not found.',
+
+        // Input converter_name error
+        Code::INPUT_CONVERTER_NAME_ERROR => 'Input converter_name was error.',
+
+        // Category errors
+        Code::CATEGORY_NOT_FOUND => 'Category was not found.',
+
+        // CategoryMcrAlias errors
+        Code::CATEGORY_MCR_ALIAS_NOT_FOUND => 'CategoryMcrAlias was not found.',
+        Code::CATEGORY_MCR_ALIAS_CONVERTER_NAME_ERROR => 'CategoryMcrAlias converterName was error.',
     ];
 
     /**

@@ -19,7 +19,7 @@ class SizeRule extends Rule
     /**
      * @var string
      */
-    public $error_message = '文件大小不合适';
+    public $error_message = 'File size dose not fit.';
 
 
     /**
@@ -36,9 +36,9 @@ class SizeRule extends Rule
      */
     public function check()
     {
-        if ($this->media->object->size <= $this->max && $this->media->object->size >= $this->min) {
+        if ($this->context->fileAttr->size <= $this->max && $this->context->fileAttr->size >= $this->min) {
             return true;
         }
-        return false;
+        return $this->error_message;
     }
 }

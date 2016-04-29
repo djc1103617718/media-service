@@ -29,7 +29,7 @@ return [
             'showScriptName' => false,
             'enablePrettyUrl' => true,
             'rules' => [
-                'GET <category_url_name:[\w-]+>s/<id:.*>' => 'media/view',
+                'GET <category_url_name:[\w-]+>/<id:.*>' => 'media/view',
             ],
         ],
     ],

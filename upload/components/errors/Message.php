@@ -17,36 +17,21 @@ class Message extends Object
      * @var array
      */
     protected static $messages = [
+        // validate errors
+        Code::VALIDATE_IP_ERROR => 'Validate Ip was error.',
+        Code::VALIDATE_SIGNATURE_ERROR => 'Validate signature was error.',
+        Code::VALIDATE_SIGNATURE_EXPIRES_ERROR => 'Validate signature was expired.',
+        Code::VALIDATE_APP_KEY_ERROR => 'Validate app_key was error.',
 
-        /**
-         * General errors
-         */
-        Code::GENERAL_DATA_VALIDATION_ERROR => 'Data validation failed.',
+        // file category errors
+        Code::FILE_CATEGORY_ERROR => 'File category was error.',
+        Code::VALIDATE_FILE_RULES_WAS_NOT_FOUND => 'Validate file attribute rules was not found.',
+        Code::CATEGORY_RULE_WAS_NOT_FOUND => 'Category rule was not found.',
 
-        // Order errors
-        Code::ORDER_NOT_FOUND => 'Order was not found.',
-        Code::ORDER_STATUS_CAN_NOT_BE_SET => 'Can\'t update your order. Please check the order status.',
-        Code::ORDER_STATUS_CAN_NOT_BE_SET_DIRECTLY => 'Invalid order status specified.',
-        Code::ORDER_STATUS_CAN_NOT_BE_SET_QUOTE_NOT_FOUND => 'Can\'t update your order. Quote not found.',
-        Code::ORDER_STATUS_CAN_NOT_BE_SET_WORK_ORDER_NOT_FOUND => 'Can\'t update your order. Worker order not found.',
-        Code::ORDER_HAS_BEEN_PAID => 'Order has been paid.',
-
-        // Quote errors
-        Code::QUOTE_NOT_FOUND => 'Quote was not found.',
-        Code::QUOTE_CAN_NOT_SEND_INVALID_ORDER_STATUS => 'Can\'t send your price. Please check the order status.',
-
-        // Quote talk errors
-        Code::QUOTE_TALK_INVALID_QUOTE => 'Can\'t add talk. Quote was not found.',
-
-        // Payment errors
-        Code::PAYMENT_FAILED_CREDIT_CARD_NOT_FOUND => 'Payment failed. Credit card was not found.',
-        Code::PAYMENT_FAILED_GATEWAY_ERROR => 'Payment failed. Payment gateway error.',
-
-        // Order comment errors
-        Code::ORDER_COMMENT_ADD_ERROR_ORDER_NOT_FOUND => 'Unable to add comment. Order not found.',
-        Code::ORDER_COMMENT_ADD_ERROR_ORDER_NOT_COMPLETED => 'Unable to add comment. Order has not been completed.',
-        Code::ORDER_COMMENT_ADD_ERROR_ORDER_NOT_PAID => 'Unable to add comment. Order has not been paid.',
-
+        // input params errors
+        Code::INPUT_CATEGORY_URL_NAME_ERROR => 'Input category_url_name was error.',
+        Code::INPUT_NAME_ERROR=> 'Input name was error.',
+        Code::INPUT_DESCRIPTION_ERROR => 'Input description was error.',
     ];
 
     /**

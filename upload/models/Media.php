@@ -3,11 +3,10 @@
 namespace upload\models;
 
 use yii;
-use common\models\App;
+use common\dict\Dict;
 use common\models\Category;
 use common\models\Object;
 use common\models\ObjectStorageS3;
-use upload\components\s3\S3Helper;
 use common\models\ObjectMetaImage;
 
 /**
@@ -17,96 +16,75 @@ use common\models\ObjectMetaImage;
 class Media extends \common\models\Media
 {
     /**
-     * @var object $objectMetaImage ObjectMetaImage的对象
-     */
-    public $objectMetaImage;
-    /**
-     * @var object $objectStorageS3 ObjectStorageS3的对象
-     */
-    public $objectStorageS3;
-    /**
-     * @var object $object Object的对象
-     */
-    public $object;
-    /**
-     * @var string $type 返回给用户的类型
-     */
-    public $type;
-
-
-    /**
-     * 创建两个对象
-     *
-     * Object constructor.
+     *初始化
      */
     public function init()
     {
-        $objectMetaImage = new ObjectMetaImage();
-        $this->objectMetaImage = $objectMetaImage;
-        $objectStorageS3 = new ObjectStorageS3();
-        $this->objectStorageS3 = $objectStorageS3;
-        $object = new Object();
-        $this->object = $object;
+        $this->on(static::EVENT_BEFORE_VALIDATE, function () {
+            if ($this->create_time === null) {
+                $this->create_time = time();
+            }
+            $this->update_time = time();
+        });
+        $this->on(static::EVENT_BEFORE_UPDATE, function () {
+            $this->update_time = time();
+        });
+        $this->on(static::EVENT_BEFORE_INSERT, function () {
+            $this->create_time = time();
+            $this->update_time = time();
+        });
     }
 
     /**
-     * 给ObjectStorageS3的所有属性赋值
-     *
-     * @param object $obj 上传到S3上返回的对象
-     * @param string $fileName 文件名
+     * @return yii\db\ActiveQuery
      */
-    public function setObjectStorageS3($obj, $fileName)
+    public function getObject()
     {
-        $awssdk = Yii::$app->awssdk;
-        $this->objectStorageS3->id = $this->object->id;
-        $this->objectStorageS3->region = $awssdk->sdkOptions['region'];
-        $this->objectStorageS3->bucket = $awssdk->sdkOptions['bucket'];
-        $this->objectStorageS3->key = 'temp/' . S3Helper::getKey($fileName);
-        $this->objectStorageS3->url = $obj['ObjectURL'];
+        return $this->hasOne(Object::className(), ['id' => 'object_id']);
     }
 
     /**
-     * 给Media对象的所有属性赋值
-     *
-     * @param array $params 用户通过get传过来的数组
-     * @param string $fileName 文件名
+     * @return yii\db\ActiveQuery
      */
-    public function setMedia($app, $category)
+    public function getObjectMetaImage()
     {
-        $md5 = $this->object->md5;
-        $params = Yii::$app->request->get();
-        $this->name = $params['name'];
-        $this->content_type = $params['content_type'];
-        $this->description = $params['description'];
-        $this->id = Yii::$app->ticketIdGenerator->generate('media');
-        $this->app_id = $app->id;
-        $this->category_id = $category->id;
-        $objectModel = Object::findOne(['md5' => $md5]);
-        if ($objectModel) {
-            $this->object_id = $objectModel->id;
-        } else {
-            $this->object_id = $this->object->id;
-        }
-        $this->object_md5_prefix = substr($md5, 0, 8);
-        $time = time();
-        $this->create_time = $time;
-        $this->update_time = $time;
+        return $this->hasOne(ObjectMetaImage::className(), ['id' => 'object_id']);
     }
 
     /**
-     * @param $obj
-     * @param $fileName
-     * @throws \Exception
+     * @return yii\db\ActiveQuery
      */
-    public function updateS3($obj, $fileName)
+    public function getObjectStorageS3()
     {
-        $md5 = md5_file($fileName);
-        $object = $this->object->findOne(['md5' => $md5]);
-        $objectId = $object->id;
-        $objectStorageS3 = $this->objectStorageS3->findOne(['id' => $objectId]);
-        $key = 'main/' . S3Helper::getKey($fileName);
-        $objectStorageS3->key = $key;
-        $objectStorageS3->url = $obj['ObjectURL'];
-        $objectStorageS3->update();
+        return $this->hasOne(ObjectStorageS3::className(), ['id' => 'object_id']);
+    }
+
+    /**
+     * @return yii\db\ActiveQuery
+     */
+    public function getCategory()
+    {
+        return $this->hasOne(Category::className(), ['id' => 'category_id']);
+    }
+
+    /**
+     * @return array
+     */
+    public function fields()
+    {
+        unset($this->objectMetaImage['id']);
+        $id = Yii::$app->hashids->encode($this->id);
+        return [
+            'id' => $id,
+            'name' => $this->name,
+            'description' =>$this->description,
+            'content_type' => $this->content_type,
+            'create_time' => $this->create_time,
+            'update_time' => $this->update_time,
+            'type' => Dict::$objectTypes[$this->object->type],
+            'size' => $this->object->size,
+            'url'=> Yii::$app->params['downloadBaseUrl'] . '/' . $this->category->url_name . '/' . $id,
+            'meta' => $this->objectMetaImage
+        ];
     }
 }

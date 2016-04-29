@@ -12,7 +12,8 @@
         "aws/aws-sdk-php": "^3.14",
         "intervention/image": "^2.3",
         "guzzlehttp/guzzle": "^6.1",
-        "hashids/hashids": "^1.0"
+        "hashids/hashids": "^1.0",
+        "yiiassets/yii2-bootbox-asset": "*"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "*",

@@ -22,6 +22,9 @@ return [
                 ],
             ],
         ],
+        'request' => [
+            'enableCsrfValidation' => false,
+        ],
         'response' => [
             'format' => \yii\web\Response::FORMAT_JSON,
         ],

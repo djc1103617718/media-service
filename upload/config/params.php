@@ -2,5 +2,7 @@
 
 // 签名的过期时间
 
-const TIME_OUT = 100000000000;
-return [];
+return [
+    'signatureExpires' => 1000000,
+    'downloadBaseUrl' => 'download.web-media-service.app',
+];

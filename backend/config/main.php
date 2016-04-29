@@ -10,6 +10,7 @@ return [
     'id' => 'app-backend',
     'basePath' => dirname(__DIR__),
     'controllerNamespace' => 'backend\controllers',
+    'defaultRoute' => 'manage/index',
     'bootstrap' => ['log'],
     'modules' => [],
     'components' => [
@@ -23,8 +24,9 @@ return [
             ],
         ],
         'user' => [
-            'identityClass' => 'backend\models\User',
-            'enableAutoLogin' => false,
+            'identityClass' => 'backend\models\Admin',
+            'enableAutoLogin' => true,
+            'loginUrl' => '/manage/login',
         ],
         'response' => [
 //            'format' => \yii\web\Response::FORMAT_JSON,
@@ -34,12 +36,6 @@ return [
             'showScriptName' => false,
             'enablePrettyUrl' => true,
         ],
-        'user' => [
-            'identityClass' => 'backend\models\User', // User must implement the IdentityInterface
-            'enableAutoLogin' => false,
-            // 'loginUrl' => ['user/login'],
-            // ...
-        ]
     ],
     'params' => $params,
 ];

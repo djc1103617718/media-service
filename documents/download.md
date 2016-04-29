@@ -3,7 +3,15 @@
 ### 下载文件
 
 ```
-GET http://download.mp-media-service.app/{category_url_name}/{hashids(media_id)}?image/thumbnail/{thumbnail}/format/{format}/q/{quality}
+GET http://download.mp-media-service.app/{category_url_name}/{hashids(media_id)}
+GET http://download.mp-media-service.app/{category_url_name}/{hashids(media_id)}?c={conveter_name}&p={params}
+GET http://download.mp-media-service.app/{category_url_name}/{hashids(media_id)}?{convert_rule_alias}
+```
+
+```
+GET http://download.mp-media-service.app/avatars/1OyndbgGn
+GET http://download.mp-media-service.app/avatars/1OyndbgGn?c=image-view&p=thumbnail/1,100x200/format/jpg/q/80
+GET http://download.mp-media-service.app/avatars/1OyndbgGn?large
 ```
 
 ### 接口规格
@@ -11,9 +19,8 @@ GET http://download.mp-media-service.app/{category_url_name}/{hashids(media_id)}
 注意：接口规格不含任何空格与换行符，下列内容经过格式化以便阅读。
     
 
-
 ```
-image/thumbnail/1,100x200
+image-view/thumbnail/1,100x200
           /format/{format}
           /q/{quality}
 ```

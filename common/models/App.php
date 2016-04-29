@@ -31,10 +31,10 @@ class App extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['key', 'secret', 'allowed_ips', 'create_time', 'update_time'], 'required'],
+            [['name', 'key', 'secret', 'allowed_ips', 'create_time', 'update_time'], 'required'],
             [['state', 'create_time', 'update_time'], 'integer'],
             [['key'], 'string', 'max' => 64],
-            [['secret', 'allowed_ips'], 'string', 'max' => 128],
+            [['name', 'secret', 'allowed_ips'], 'string', 'max' => 128],
             [['key'], 'unique']
         ];
     }
@@ -46,6 +46,7 @@ class App extends \yii\db\ActiveRecord
     {
         return [
             'id' => 'ID',
+            'name' => 'Name',
             'key' => 'Key',
             'secret' => 'Secret',
             'allowed_ips' => 'Allowed IPs',

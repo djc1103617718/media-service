@@ -1,6 +1,6 @@
 <?php
 
-namespace upload\errors;
+namespace upload\components\errors;
 
 use yii\base\Object;
 
@@ -11,30 +11,19 @@ use yii\base\Object;
  */
 class Code extends Object
 {
-    // General errors
-    const GENERAL_DATA_VALIDATION_ERROR = 10100;
+    // validate errors
+    const VALIDATE_IP_ERROR = 10100;
+    const VALIDATE_SIGNATURE_ERROR = 10101;
+    const VALIDATE_SIGNATURE_EXPIRES_ERROR = 10102;
+    const VALIDATE_APP_KEY_ERROR = 10103;
 
-    // Order errors
-    const ORDER_NOT_FOUND = 11100;
-    const ORDER_STATUS_CAN_NOT_BE_SET = 11101;
-    const ORDER_STATUS_CAN_NOT_BE_SET_DIRECTLY = 11102;
-    const ORDER_STATUS_CAN_NOT_BE_SET_QUOTE_NOT_FOUND = 11103;
-    const ORDER_STATUS_CAN_NOT_BE_SET_WORK_ORDER_NOT_FOUND = 11104;
-    const ORDER_HAS_BEEN_PAID = 11105;
+    // file category error
+    const FILE_CATEGORY_ERROR = 11100;
+    const VALIDATE_FILE_RULES_WAS_NOT_FOUND = 11101;
+    const CATEGORY_RULE_WAS_NOT_FOUND = 11102;
 
-    // Quote errors
-    const QUOTE_NOT_FOUND = 12100;
-    const QUOTE_CAN_NOT_SEND_INVALID_ORDER_STATUS = 12101;
-
-    // Quote talk errors
-    const QUOTE_TALK_INVALID_QUOTE = 13100;
-
-    // Payment errors
-    const PAYMENT_FAILED_CREDIT_CARD_NOT_FOUND = 14100;
-    const PAYMENT_FAILED_GATEWAY_ERROR = 14101;
-
-    // Order comment errors
-    const ORDER_COMMENT_ADD_ERROR_ORDER_NOT_FOUND = 15100;
-    const ORDER_COMMENT_ADD_ERROR_ORDER_NOT_COMPLETED = 15101;
-    const ORDER_COMMENT_ADD_ERROR_ORDER_NOT_PAID = 15102;
+    // input params error
+    const INPUT_CATEGORY_URL_NAME_ERROR = 12100;
+    const INPUT_NAME_ERROR = 12101;
+    const INPUT_DESCRIPTION_ERROR = 12102;
 }

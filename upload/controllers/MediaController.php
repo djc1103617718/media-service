@@ -8,11 +8,21 @@ use yii\base\InvalidConfigException;
 use yii\base\UserException;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Inflector;
+use common\models\Category;
+use common\dict\Dict;
 use common\models\CategoryRule;
 use upload\components\rules\Rule;
-use upload\components\s3\S3Helper;
+use upload\components\helpers\S3;
 use upload\components\base\Controller;
 use upload\models\Media;
+use upload\models\Object;
+use upload\components\exception\BussinessLogicException;
+use upload\components\helpers\File;
+use upload\models\ObjectMetaImage;
+use upload\models\ObjectStorageS3;
+use upload\components\errors\Code;
+use upload\components\file\FileAttr;
+use upload\components\rules\Context;
 
 /**
  * Class CategoriesController
@@ -22,8 +32,6 @@ use upload\models\Media;
  */
 class MediaController extends Controller
 {
-    public $enableCsrfValidation = false;
-
     /**
      * @return array
      * @throws UserException
@@ -31,189 +39,173 @@ class MediaController extends Controller
      */
     public function actionCreate()
     {
-        $filename = $this->saveInputFile();
-        $fileAttr = $this->getFileAtrr($filename);
-
         $media = new Media();
+        $filename = $this->saveInputFile();
+        $fileAttr = File::getFileAtrr($filename);
+        $fileAttrModel = new FileAttr();
+        $fileAttrModel->setAttributes($fileAttr, false); ;
+        $context = new Context();
+        $context->fileAttr = $fileAttrModel;
         $allAttr = ArrayHelper::merge(
-            $fileAttr,
+            (array)$fileAttr,
             Yii::$app->request->get()
         );
-        $media->type = $allAttr['type'];
-        $media->object->attributes = $allAttr;
-        $media->object->id = Yii::$app->ticketIdGenerator->generate('object');
-        $media->object->storage_type = 1;
-
-        $media->objectMetaImage->attributes = $allAttr;
-        $media->objectMetaImage->id = $media->object->id;
-
-        $media->setMedia($this->app, $this->category);
-
-        if (!$media->validate() || !$this->categoryRule($media)) {
-            throw new UserException('验证规则失败');
-        }
-
-        $object = $media->object->findOne([
-            'md5' => $media->object->md5,
-            'sha1' => $media->object->sha1,
+        $object = Object::findOne([
+            'md5' => $allAttr['md5'],
+            'sha1' => $allAttr['sha1'],
         ]);
 
+        // 判断传入的category_url_name是否在Category表中有对应的类
+        $category_url_name = Yii::$app->request->get('category_url_name');
+        $category = Category::findOne(['url_name' => $category_url_name]);
+        if ($category === null) {
+            throw new BussinessLogicException(Code::INPUT_CATEGORY_URL_NAME_ERROR);
+        }
+        $this->categoryRule($category, $context);
         if ($object) {
-            $media->save(false);
+            $media = $this->setMedia($media, $category, $object, $allAttr);
+            $media->save();
             @unlink($filename);
-            return $this->returnParams($media);
+            return $media->fields();
         }
 
-        $s3Object = S3Helper::putS3($filename, 'temp');
-        $media->setObjectStorageS3($s3Object, $filename);
-        Yii::$app->db->transaction(function () use ($media) {
-            $media->object->save(false);
-            $media->objectMetaImage->save(false);
-            $media->objectStorageS3->save(false);
-            $media->save(false);
+        // 给$object的所有属性赋值
+        $object = $this->setObject($allAttr);
+        // 给$media的所有属性赋值
+        $media = $this->setMedia($media, $category, $object, $allAttr);
+        // 给$objectMetaImage的所有属性赋值
+        $objectMetaImage = $this->setObjectMetaImage($allAttr, $object->id);
+
+        // 将文件传送到S3的临时文件中
+        $s3Object = S3::putS3($filename, 'temp');
+
+        // 给$objectStorageS3的所有属性赋值
+        $objectStorageS3  = $this->setObjectStorageS3($s3Object, $object->id, $filename);
+
+        Yii::$app->db->transaction(function () use ($object, $objectMetaImage, $objectStorageS3, $media) {
+            $object->save(false);
+            $objectMetaImage->save(false);
+            $objectStorageS3->save(false);
+            $media->save();
         });
         try {
-            $result = S3Helper::copyS3($filename, 'main', 'temp');
-            $media->updateS3($result, $filename);
+            $result = S3::copyS3($filename, 'main', 'temp');
+            S3::deleteS3($filename, 'temp');
+            $objectStorageS3->updateS3($result, $filename);
+
         } catch (Exception $e) {
         }
         @unlink($filename);
-        return $this->returnParams($media);
+        return $media->fields();
     }
 
     /**
-     * 获取文件的属性
-     * @param string $filename 文件名
-     * @return array 返回一个文件属性的数组
-     * @throws UserException
-     */
-    public function getFileAtrr($filename)
-    {
-        $size = filesize($filename);
-        if ($size === 0) {
-            throw new UserException ('传输内容为空');
-        }
-        $md5 = md5_file($filename);
-        $sha1 = sha1_file($filename);
-        $content_type = mime_content_type($filename);
-        $time = time();
-        $fileArr = [
-            'md5' => $md5,
-            'sha1' => $sha1,
-            'content_type' => $content_type,
-            'size' => $size,
-            'create_time' => $time,
-            'update_time' => $time,
-        ];
-        $gpsArray = S3Helper::getGps($filename);
-        $typeArr = S3Helper::getType($content_type);
-        return ArrayHelper::merge($fileArr,  $gpsArray, $typeArr);
-    }
-
-    /**
-     * 返回参数
-     *
-     * @param Media $media 对象Media
-     * @return array
-     */
-    public function returnParams($media)
-    {
-        unset($media->objectMetaImage['id']);
-        $id = Yii::$app->hashids->encode($media->id);
-        return[
-            'id' => $id,
-            'name' => $media->name,
-            'description' =>$media->description,
-            'content_type' => $media->content_type,
-            'create_time' => $media->create_time,
-            'update_time' => $media->update_time,
-            'type' => $media->type,
-            'size' => $media->object->size,
-            //'url'=>'http://download.mp-media-service.app/' . Yii::$app->request->get('category_url_name') . '/' . $id,
-            'url'=>'http://54.152.104.244:84/' . Yii::$app->request->get('category_url_name') . '/' . $id,
-            'meta' => $media->objectMetaImage];
-    }
-
-    /**
-     * 将输入的文件保存在临时文件中
-     *
-     * @return string $filename 返回文件名
+     * @return resource
      */
     public function saveInputFile()
     {
-        // 打开输入文件
-        $fp = @fopen("php://input", "rb");
-
-        $uploadDir = Yii::getAlias('@upload');
-        // 创建临时文件目录
-        $this->makeTempDir($uploadDir . '/runtime/temp');
-        // 获取唯一的临时文件
-        $uniqid = uniqid();
-
-        $filename = sprintf('%s/runtime/temp/%s', $uploadDir, $uniqid);
-        // 打开准备写入的临时文件
-        $fp2 = @fopen($filename, "wb");
-        // 将打开的输入文件按照1024个字节一段一段的写入到临时文件$fp2中,直到读完为止
-        while (($string = fread($fp, 1024)) !== false && !feof($fp)) {
-            fwrite($fp2, $string);
-        }
-
-        // 关闭两个文件
-        @fclose($fp);
-        @fclose($fp2);
-        return $filename;
+        $fp = fopen("php://input", "rb");
+        $filename = sprintf('%s/runtime/temp/%s', Yii::getAlias('@upload'), uniqid());
+        return File::writeFile($fp, $filename);
     }
 
     /**
-     * quote from @http://www.ruesin.com/php/mkdir-97.html
-     * #################################################
-     *
-     * 迭代创建级联目录
-     ×
-     * @param string $path
-     * @return bool
+     * @param $media
+     * @param $category
+     * @param $object
+     * @param $allAttr
+     * @return mixed
      */
-    public function makeTempDir($path)
+    public function setMedia($media, $category, $object, $allAttr)
     {
-        $arr=array();
-        while(!is_dir($path)){
-            array_push($arr,$path);// 把路径中的各级父目录压入到数组中去，直接有父目录存在为止（即上面一行is_dir判断出来有目录，条件为假退出while循环）
-            $path=dirname($path);// 父目录
+        $media->id = Yii::$app->ticketIdGenerator->generate('media');
+        $media->app_id = $this->app->id;
+        $media->category_id = $category->id;
+        $media->object_md5_prefix = substr($allAttr['md5'], 0, 8);
+        $media->name = Yii::$app->request->get('name');
+        $media->description = Yii::$app->request->get('description');
+        if(Yii::$app->request->get('content_type') !== null) {
+            $media->content_type = Yii::$app->request->get('content_type');
+        } else {
+            $media->content_type = $object->content_type;
         }
-        if(empty($arr)){// arr为空证明上面的while循环没有执行，即目录已经存在
-            return true;
-        }
-        while(count($arr)){
-            $parentdir=array_pop($arr);// 弹出最后一个数组单元
-            mkdir($parentdir);// 从父目录往下创建
-        }
+        $media->object_id = $object->id;
+        return $media;
     }
 
+    /**
+     * @param $allAttr
+     * @return Object
+     */
+    public function setObject($allAttr)
+    {
+        $object = new Object();
+        $object->attributes = $allAttr;
+        $object->id = Yii::$app->ticketIdGenerator->generate('object');
+        $object->storage_type = Dict::OBJECT_STORAGE_TYPE_S3;
+        return $object;
+    }
+
+    /**
+     * @param $allAttr
+     * @param $objectId
+     * @return ObjectMetaImage
+     */
+    public function setObjectMetaImage($allAttr, $objectId)
+    {
+        $objectMetaImage = new ObjectMetaImage();
+        $objectMetaImage->attributes = $allAttr['meta'];
+        $objectMetaImage->id = $objectId;
+        return $objectMetaImage;
+    }
+
+    /**
+     * @param $s3Object
+     * @param $objectId
+     * @param $filename
+     * @return ObjectStorageS3
+     */
+    public function setObjectStorageS3($s3Object, $objectId, $filename)
+    {
+        $objectStorageS3 = new ObjectStorageS3();
+        $awssdk = Yii::$app->awssdk;
+        $objectStorageS3->id = $objectId;
+        $objectStorageS3->region = $awssdk->sdkOptions['region'];
+        $objectStorageS3->bucket = $awssdk->sdkOptions['bucket'];
+        $objectStorageS3->key = 'temp/' . S3::getKey($filename);
+        $objectStorageS3->url = $s3Object['ObjectURL'];
+        return $objectStorageS3;
+    }
 
     /**
      * 验证文件规则
      *
+     * @param $category
      * @param $obj
      * @return bool
      * @throws InvalidConfigException
+     * @throws UserException
      */
-    public function categoryRule($obj)
+    public function categoryRule($category, $obj)
     {
-        $rules = CategoryRule::find()->where(['category_id' => $this->category->id])->all();
+        $rules = CategoryRule::find()->where(['category_id' => $category->id])->all();
+        if ($rules === null) {
+            throw new BussinessLogicException(Code::CATEGORY_RULE_WAS_NOT_FOUND);
+        }
         foreach ($rules as $rule) {
             $ruleName = $rule['rule_name'];
             $ruleParams = json_decode($rule['rule_params']);
             $ruleParams = get_object_vars($ruleParams);
-            $ruleParams['media'] = $obj;
+            $ruleParams['context'] = $obj;
             $className = '\upload\components\rules\\' . Inflector::id2camel($ruleName);
             $ruleObj = \Yii::createObject([
                 'class' => $className,
             ], [$ruleParams]);
             if (!($ruleObj instanceof Rule)) {
-                return false;
+                throw new BussinessLogicException(Code::VALIDATE_FILE_RULES_WAS_NOT_FOUND);
             }
-            if (!$ruleObj->check()) {
-                return false;
+            if ($ruleObj->check() !== true) {
+                throw new UserException($ruleObj->check());
             }
         }
         return true;

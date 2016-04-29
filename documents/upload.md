@@ -49,3 +49,4 @@ POST http://upload.mp-media-service.app/{category_url_name}?name=xxx.jpg
 3. 文件重复性校验，提交S3，入库
 4. 结合category进行文件合法性校验
 5. 结合app进行身份合法性校验
+

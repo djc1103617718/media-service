@@ -117,7 +117,7 @@ class Media extends \common\models\Media
         return $this->$action($s3cacheFile, $params);
     }
 
-    public function doImage($file, $params)
+    public function doImageView($file, $params)
     {
         /** @var verify the cache fileName $md5Data */
         $md5Data = [];
